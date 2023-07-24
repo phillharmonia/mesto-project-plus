@@ -1,4 +1,4 @@
-import express, { NextFunction, Response } from 'express';
+import express, { NextFunction, Response, Request } from 'express';
 import userRouter from './routes/user';
 import cardsRouter from './routes/cards';
 import { IRequest } from './types/Request';
@@ -28,6 +28,9 @@ app.use((req: IRequest, res: Response, next: NextFunction) => {
 });
 app.use('/', userRouter);
 app.use('/', cardsRouter);
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ error: 'Страница не найдена' });
+});
 
 app.listen(3000, () => {
   console.log('Сервер работает http://127.0.0.1:3000');
