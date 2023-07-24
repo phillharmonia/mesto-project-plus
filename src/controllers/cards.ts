@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import Card from "../models/cards";
-import { IRequest } from "../types/Request";
+import { Request, Response } from 'express';
+import Card from '../models/cards';
+import { IRequest } from '../types/Request';
 
 export const createCard = (req: IRequest, res: Response) => {
   const { name, link } = req.body;
@@ -11,22 +11,20 @@ export const createCard = (req: IRequest, res: Response) => {
   return Card.create({
     name,
     link,
-    owner
+    owner,
   })
-    .then(card => res.json({ data: card }))
+    .then((card) => res.json({ data: card }))
     .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
 };
 
-export const getCards = (req: Request, res: Response) => {
-  return Card.find({})
-    .then(cards => res.json({ data: cards }))
-    .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
-};
+export const getCards = (req: Request, res: Response) => Card.find({})
+  .then((cards) => res.json({ data: cards }))
+  .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
 
 export const getCardById = (req: Request, res: Response) => {
   const { id } = req.params;
   return Card.findById(id)
-    .then(card => {
+    .then((card) => {
       if (!card) {
         return res.status(404).json({ message: 'Карточка с указанным _id не найдена' });
       }
@@ -36,7 +34,7 @@ export const getCardById = (req: Request, res: Response) => {
 };
 
 export const likeCard = (req: IRequest, res: Response) => {
-  const cardId = req.params.cardId;
+  const { cardId } = req.params;
   const userId = req.user?._id;
 
   if (!userId) {
@@ -46,9 +44,9 @@ export const likeCard = (req: IRequest, res: Response) => {
   Card.findByIdAndUpdate(
     cardId,
     { $addToSet: { likes: userId } },
-    { new: true }
+    { new: true },
   )
-    .then(updatedCard => {
+    .then((updatedCard) => {
       if (!updatedCard) {
         return res.status(404).json({ message: 'Передан несуществующий _id карточки' });
       }
@@ -58,7 +56,7 @@ export const likeCard = (req: IRequest, res: Response) => {
 };
 
 export const dislikeCard = (req: IRequest, res: Response) => {
-  const cardId = req.params.cardId;
+  const { cardId } = req.params;
   const userId = req.user?._id;
 
   if (!userId) {
@@ -68,9 +66,9 @@ export const dislikeCard = (req: IRequest, res: Response) => {
   Card.findByIdAndUpdate(
     cardId,
     { $pull: { likes: userId } },
-    { new: true }
+    { new: true },
   )
-    .then(updatedCard => {
+    .then((updatedCard) => {
       if (!updatedCard) {
         return res.status(404).json({ message: 'Передан несуществующий _id карточки' });
       }
