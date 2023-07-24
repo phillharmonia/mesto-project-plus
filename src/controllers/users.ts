@@ -1,4 +1,7 @@
-import { Request, Response } from 'express';
+import { Response, Request } from 'express';
+import {
+  STATUS_BAD_REQUEST, STATUS_NOT_FOUND, STATUS_OK, STATUS_SERVER_ERROR,
+} from '../constants/statusCodes';
 import User from '../models/user';
 import { IRequest } from '../types/Request';
 
@@ -9,7 +12,7 @@ export const createUser = (req: Request, res: Response) => {
     avatar,
   } = req.body;
   if (!name || !about || !avatar) {
-    return res.status(400)
+    return res.status(STATUS_BAD_REQUEST)
       .json({ message: 'Неверные данные запроса, отсутствует имя, информация или аватар' });
   }
   return User.create({
@@ -17,14 +20,18 @@ export const createUser = (req: Request, res: Response) => {
     about,
     avatar,
   })
-    .then((user) => res.json({ data: user }))
-    .catch(() => res.status(500)
-      .json({ message: 'Произошла ошибка' }));
+    .then((user) => res.status(STATUS_OK).json({ data: user }))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Переданы некорректные данные при создании пользователя' });
+      }
+      return res.status(STATUS_SERVER_ERROR).json({ message: 'Произошла ошибка' });
+    });
 };
 
 export const getUsers = (req: Request, res: Response) => User.find({})
-  .then((users) => res.json({ data: users }))
-  .catch(() => res.status(500)
+  .then((users) => res.status(STATUS_OK).json({ data: users }))
+  .catch(() => res.status(STATUS_SERVER_ERROR)
     .json({ message: 'Произошла ошибка' }));
 
 export const getUsersById = (req: Request, res: Response) => {
@@ -32,13 +39,17 @@ export const getUsersById = (req: Request, res: Response) => {
   return User.findById(id)
     .then((user) => {
       if (!user) {
-        return res.status(404)
+        return res.status(STATUS_NOT_FOUND)
           .json({ message: 'Пользователь с указанным _id не найден' });
       }
-      return res.json({ data: user });
+      return res.status(STATUS_OK).json({ data: user });
     })
-    .catch(() => res.status(500)
-      .json({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Некорректный формат _id' });
+      }
+      return res.status(STATUS_SERVER_ERROR).json({ message: 'Произошла ошибка' });
+    });
 };
 
 export const updateUser = (req: IRequest, res: Response) => {
@@ -49,7 +60,7 @@ export const updateUser = (req: IRequest, res: Response) => {
   const userId = req.user?._id;
 
   if (!name || !about) {
-    return res.status(400)
+    return res.status(STATUS_BAD_REQUEST)
       .json({ message: 'Переданы некорректные данные при обновлении профиля' });
   }
 
@@ -59,13 +70,19 @@ export const updateUser = (req: IRequest, res: Response) => {
   }, { new: true })
     .then((updatedUser) => {
       if (!updatedUser) {
-        return res.status(404)
+        return res.status(STATUS_NOT_FOUND)
           .json({ message: 'Пользователь с указанным _id не найден' });
       }
-      return res.json({ data: updatedUser });
+      return res.status(STATUS_OK).json({ data: updatedUser });
     })
-    .catch(() => res.status(500)
-      .json({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Переданы некорректные данные при обновлении профиля' });
+      } if (err.name === 'CastError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Некорректный формат _id' });
+      }
+      return res.status(STATUS_SERVER_ERROR).json({ message: 'Произошла ошибка' });
+    });
 };
 
 export const updateUserAvatar = (req: IRequest, res: Response) => {
@@ -73,18 +90,23 @@ export const updateUserAvatar = (req: IRequest, res: Response) => {
   const userId = req.user?._id;
 
   if (!avatar) {
-    return res.status(400)
+    return res.status(STATUS_BAD_REQUEST)
       .json({ message: 'Переданы некорректные данные при обновлении аватара' });
   }
-
   return User.findByIdAndUpdate(userId, { avatar }, { new: true })
     .then((updatedUser) => {
       if (!updatedUser) {
-        return res.status(404)
+        return res.status(STATUS_NOT_FOUND)
           .json({ message: 'Пользователь с указанным _id не найден' });
       }
-      return res.json({ data: updatedUser });
+      return res.status(STATUS_OK).json({ data: updatedUser });
     })
-    .catch(() => res.status(500)
-      .json({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Переданы некорректные данные при обновлении аватара' });
+      } if (err.name === 'CastError') {
+        return res.status(STATUS_BAD_REQUEST).json({ message: 'Некорректный формат _id' });
+      }
+      return res.status(STATUS_SERVER_ERROR).json({ message: 'Произошла ошибка' });
+    });
 };
