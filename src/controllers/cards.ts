@@ -76,3 +76,15 @@ export const dislikeCard = (req: IRequest, res: Response) => {
     })
     .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
 };
+export const deleteCardById = (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  Card.findByIdAndRemove(id)
+    .then((deletedCard) => {
+      if (!deletedCard) {
+        return res.status(404).json({ message: 'Карточка с указанным _id не найдена' });
+      }
+      return res.json({ data: deletedCard });
+    })
+    .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
+};
