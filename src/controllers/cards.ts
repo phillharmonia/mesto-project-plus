@@ -21,18 +21,6 @@ export const getCards = (req: Request, res: Response) => Card.find({})
   .then((cards) => res.json({ data: cards }))
   .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
 
-export const getCardById = (req: Request, res: Response) => {
-  const { id } = req.params;
-  return Card.findById(id)
-    .then((card) => {
-      if (!card) {
-        return res.status(404).json({ message: 'Карточка с указанным _id не найдена' });
-      }
-      return res.json({ data: card });
-    })
-    .catch(() => res.status(500).json({ message: 'Произошла ошибка' }));
-};
-
 export const likeCard = (req: IRequest, res: Response) => {
   const { cardId } = req.params;
   const userId = req.user?._id;
@@ -79,7 +67,7 @@ export const dislikeCard = (req: IRequest, res: Response) => {
 export const deleteCardById = (req: Request, res: Response) => {
   const { id } = req.params;
 
-  Card.findByIdAndRemove(id)
+  Card.findByIdAndDelete(id)
     .then((deletedCard) => {
       if (!deletedCard) {
         return res.status(404).json({ message: 'Карточка с указанным _id не найдена' });
