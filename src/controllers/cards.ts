@@ -43,7 +43,7 @@ export const likeCard = (req: IRequest, res: Response) => {
   Card.findByIdAndUpdate(
     cardId,
     { $addToSet: { likes: userId } },
-    { new: true },
+    { new: true, runValidators: true },
   )
     .then((updatedCard) => {
       if (!updatedCard) {
@@ -70,7 +70,7 @@ export const dislikeCard = (req: IRequest, res: Response) => {
   Card.findByIdAndUpdate(
     cardId,
     { $pull: { likes: userId } },
-    { new: true },
+    { new: true, runValidators: true },
   )
     .then((updatedCard) => {
       if (!updatedCard) {

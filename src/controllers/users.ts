@@ -67,7 +67,7 @@ export const updateUser = (req: IRequest, res: Response) => {
   return User.findByIdAndUpdate(userId, {
     name,
     about,
-  }, { new: true })
+  }, { new: true, runValidators: true })
     .then((updatedUser) => {
       if (!updatedUser) {
         return res.status(STATUS_NOT_FOUND)
@@ -93,7 +93,7 @@ export const updateUserAvatar = (req: IRequest, res: Response) => {
     return res.status(STATUS_BAD_REQUEST)
       .json({ message: 'Переданы некорректные данные при обновлении аватара' });
   }
-  return User.findByIdAndUpdate(userId, { avatar }, { new: true })
+  return User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((updatedUser) => {
       if (!updatedUser) {
         return res.status(STATUS_NOT_FOUND)
