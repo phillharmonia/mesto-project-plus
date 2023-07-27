@@ -5,7 +5,8 @@ import {
   STATUS_OK,
   STATUS_BAD_REQUEST,
   STATUS_NOT_FOUND,
-  STATUS_SERVER_ERROR,
+  // eslint-disable-next-line import/named
+  STATUS_SERVER_ERROR, STATUS_FORBIDDEN,
 } from '../constants/statusCodes';
 
 export const createCard = (req: IRequest, res: Response) => {
@@ -86,17 +87,35 @@ export const dislikeCard = (req: IRequest, res: Response) => {
     });
 };
 
-export const deleteCardById = (req: Request, res: Response) => {
+export const deleteCardById = (req: IRequest, res: Response) => {
   const { id } = req.params;
+  const userId = req.user?._id;
 
-  Card.findByIdAndRemove(id)
-    .then((deletedCard) => {
-      if (!deletedCard) {
+  Card.findById(id)
+    .then((card) => {
+      if (!card) {
         return res.status(STATUS_NOT_FOUND).json({ message: 'Карточка с указанным _id не найдена' });
       }
-      return res.status(STATUS_OK).json({ data: deletedCard });
+
+      if (card.owner.toString() !== userId) {
+        return res.status(STATUS_FORBIDDEN).json({ message: 'У вас нет прав на удаление этой карточки' });
+      }
+
+      Card.findByIdAndRemove(id)
+        .then((deletedCard) => {
+          if (!deletedCard) {
+            return res.status(STATUS_NOT_FOUND).json({ message: 'Карточка с указанным _id не найдена' });
+          }
+          return res.status(STATUS_OK).json({ data: deletedCard });
+        })
+        .catch((err: any) => {
+          if (err.name === 'CastError') {
+            return res.status(STATUS_BAD_REQUEST).json({ message: 'Передан некорректный _id карточки' });
+          }
+          return res.status(STATUS_SERVER_ERROR).json({ message: 'Произошла ошибка' });
+        });
     })
-    .catch((err) => {
+    .catch((err: any) => {
       if (err.name === 'CastError') {
         return res.status(STATUS_BAD_REQUEST).json({ message: 'Передан некорректный _id карточки' });
       }
