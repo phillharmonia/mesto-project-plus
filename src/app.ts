@@ -1,7 +1,11 @@
-import express, { NextFunction, Response, Request } from 'express';
+import express, {Response, Request, NextFunction} from 'express';
 import userRouter from './routes/user';
 import cardsRouter from './routes/cards';
-import { IRequest } from './types/Request';
+import { createUser, getCurrentUser, login } from './controllers/users';
+import authMiddleware from './middlewares/auth';
+import { requestLogger } from "./middlewares/logger";
+import errorMiddleware from './middlewares/error';
+import {STATUS_NOT_FOUND} from "./constants/statusCodes";
 
 const mongoose = require('mongoose');
 
@@ -20,16 +24,20 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use((req: IRequest, res: Response, next: NextFunction) => {
-  req.user = {
-    _id: '64bcf33815d8393dc073f592',
-  };
-  next();
-});
+app.use(requestLogger);
+
+app.post('/signin', login);
+app.post('/signup', createUser);
+app.use(authMiddleware);
+app.get('/users/me', getCurrentUser);
+
 app.use('/', userRouter);
 app.use('/', cardsRouter);
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Страница не найдена' });
+
+app.use(errorMiddleware)
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  next({ status: STATUS_NOT_FOUND, message: 'Страница не найдена' });
 });
 
 app.listen(3000, () => {
