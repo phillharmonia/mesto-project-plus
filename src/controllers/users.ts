@@ -38,6 +38,9 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
       if (err.name === 'ValidationError') {
         return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при создании пользователя' });
       }
+        if (err.code === 11000) {
+            return next({ status: STATUS_BAD_REQUEST, message: 'Пользователь с таким email уже существует' });
+        }
     })
       .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка'}));
 };
