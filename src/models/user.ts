@@ -12,10 +12,14 @@ export interface IUser {
 const userSchema: Schema = new Schema({
   name: {
     type: String,
+    minlength: 2,
+    maxlength: 30,
     required: true,
   },
   about: {
     type: String,
+    minlength: 2,
+    maxlength: 200,
     required: true,
   },
   avatar: {
@@ -36,7 +40,8 @@ const userSchema: Schema = new Schema({
   password: {
     type: String,
     required: true,
+    select: false,
   },
 });
 
-export default model<IUser>('User', userSchema);
+export default model<IUser>('user', userSchema);
