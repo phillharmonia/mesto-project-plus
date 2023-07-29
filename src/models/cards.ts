@@ -18,6 +18,12 @@ const CardSchema = new Schema<ICard>({
   link: {
     type: String,
     required: true,
+    validate: {
+      validator: function (value: string) {
+        const regex = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
+        return regex.test(value);
+      },
+    },
   },
   owner: {
     type: Schema.Types.ObjectId,
@@ -33,4 +39,4 @@ const CardSchema = new Schema<ICard>({
     default: Date.now,
   },
 });
-export default model<ICard>('Card', CardSchema);
+export default model<ICard>('card', CardSchema);
