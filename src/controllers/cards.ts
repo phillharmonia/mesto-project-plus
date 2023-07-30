@@ -4,7 +4,7 @@ import { IRequest } from '../types/Request';
 import {
   STATUS_OK,
 } from '../constants/statusCodes';
-import {BadRequestError, ForbiddenError, ServerError} from "../utills";
+import {BadRequestError, ForbiddenError, NotFoundError, ServerError} from "../utills";
 
 export const createCard = (req: IRequest, res: Response, next: NextFunction) => {
   const { name, link } = req.body;
@@ -67,25 +67,27 @@ export const dislikeCard = (req: IRequest, res: Response, next: NextFunction) =>
     });
 };
 
-export const deleteCardById = (req: IRequest, res: Response, next: NextFunction) => {
+export const deleteCardById = async (req: IRequest, res: Response, next: NextFunction) => {
   const { id } = req.params;
   const userId = req.user?._id;
 
-  Card.findById(id)
-    .then((card) => {
-      if (card!.owner.toString() !== userId) {
-        return next(new ForbiddenError('У вас нет прав на удаление этой карточки'));
-      }
+  try {
+    const card = await Card.findById(id);
 
-      Card.findByIdAndRemove(id)
-        .then((deletedCard) => {
-          return res.status(STATUS_OK).json({ data: deletedCard });
-        })
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        return next(new BadRequestError('Передан некорректный _id карточки'));
-      }
-      return next(new ServerError('Произошла ошибка'))
-    });
+    if (!card) {
+      return next(new NotFoundError('Карточка не найдена'));
+    }
+
+    if (card.owner.toString() !== userId) {
+      return next(new ForbiddenError('У вас нет прав на удаление этой карточки'));
+    }
+
+    const deletedCard = await Card.findByIdAndRemove(id);
+    return res.status(STATUS_OK).json({ data: deletedCard });
+  } catch (err: any) {
+    if (err.name === 'CastError') {
+      return next(new BadRequestError('Передан некорректный _id карточки'));
+    }
+    return next(new ServerError('Произошла ошибка'));
+  }
 };
