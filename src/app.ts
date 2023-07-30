@@ -3,9 +3,9 @@ import userRouter from './routes/user';
 import cardsRouter from './routes/cards';
 import { createUser, getCurrentUser, login } from './controllers/users';
 import authMiddleware from './middlewares/auth';
-import { requestLogger } from "./middlewares/logger";
-import errorMiddleware from './middlewares/error';
-import {STATUS_NOT_FOUND} from "./constants/statusCodes";
+import {errorLogger, requestLogger} from "./middlewares/logger";
+import {createUserValidation, loginValidation} from "./validation/validation";
+import {NotFoundError} from "./utills";
 
 const mongoose = require('mongoose');
 
@@ -26,18 +26,17 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(requestLogger);
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', loginValidation, login);
+app.post('/signup', createUserValidation, createUser);
 app.use(authMiddleware);
-app.get('/users/me', getCurrentUser);
 
-app.use('/', userRouter);
-app.use('/', cardsRouter);
+app.use('/users', userRouter);
+app.use('/cards', cardsRouter);
 
-app.use(errorMiddleware)
+app.use(errorLogger)
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  next({ status: STATUS_NOT_FOUND, message: 'Страница не найдена' });
+    return next(new NotFoundError('Страница не найдена'))
 });
 
 app.listen(3000, () => {

@@ -1,5 +1,6 @@
 import { model, Schema } from 'mongoose';
-
+import {regExp} from "../constants";
+import validator from "validator";
 
 export interface IUser {
   name: string;
@@ -25,17 +26,19 @@ const userSchema: Schema = new Schema({
   avatar: {
     type: String,
     required: true,
-    validate: {
-      validator: function (value: string) {
-        const regex = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
-        return regex.test(value);
+      validate: {
+          validator: (url: string) => regExp.test(url),
+          message: 'Некорректная ссылка на аватар',
       },
-    },
   },
   email: {
     type: String,
     required: true,
     unique: true,
+      validate: {
+      validator: (value: string) => validator.isEmail(value),
+          message: "Некорректный формат почты"
+      }
   },
   password: {
     type: String,
