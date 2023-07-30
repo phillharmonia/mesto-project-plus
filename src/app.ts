@@ -6,6 +6,7 @@ import authMiddleware from './middlewares/auth';
 import {errorLogger, requestLogger} from "./middlewares/logger";
 import {createUserValidation, loginValidation} from "./validation/validation";
 import {NotFoundError} from "./utills";
+import {errors} from "celebrate";
 
 const mongoose = require('mongoose');
 
@@ -34,6 +35,7 @@ app.use('/users', userRouter);
 app.use('/cards', cardsRouter);
 
 app.use(errorLogger)
+app.use(errors());
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     return next(new NotFoundError('Страница не найдена'))
