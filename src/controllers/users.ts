@@ -2,10 +2,11 @@ import {Response, Request, NextFunction} from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
-  STATUS_BAD_REQUEST, STATUS_NOT_FOUND, STATUS_OK, STATUS_SERVER_ERROR, STATUS_UNAUTHORIZED,
+  STATUS_OK
 } from '../constants/statusCodes';
 import User, { IUser } from '../models/user';
 import { IRequest } from '../types/Request';
+import {BadRequestError, ServerError, UnauthorizedError} from "../utills";
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
   const {
@@ -16,11 +17,6 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
     password,
   } = req.body;
 
-  if (!email || !password) {
-    return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при создании пользователя, отсутствует логин или пароль' });
-  }
-
-  // Хеширование пароля перед сохранением в базу
   bcrypt.hash(password, 10)
     .then((hashedPassword) => {
       const userData: IUser = {
@@ -28,7 +24,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
         about,
         avatar,
         email,
-        password: hashedPassword, // Сохраняем хешированный пароль
+        password: hashedPassword,
       };
 
       return User.create(userData);
@@ -36,81 +32,65 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
     .then((newUser) => res.status(STATUS_OK).json({ data: newUser }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при создании пользователя' });
+        return next(new BadRequestError('Переданы некорректные данные при создании пользователя'));
+      } else if (err.code === 11000) {
+        return next(new BadRequestError('Пользователь с таким email уже существует'));
+      } else {
+        return next(new ServerError('Произошла ошибка'));
       }
-        if (err.code === 11000) {
-            return next({ status: STATUS_BAD_REQUEST, message: 'Пользователь с таким email уже существует' });
-        }
-    })
-      .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка'}));
+    });
 };
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-      return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные для авторизации, отсутствует логин или пароль' });
-  }
-
   User.findOne({ email })
     .select('+password')
     .then((user) => {
-      if (!user) {
-        return next({ status: STATUS_UNAUTHORIZED, message: 'Неправильная почта или пароль' });
-      }
 
-      // Проверяем соответствие хешированного пароля
-      bcrypt.compare(password, user.password)
+      bcrypt.compare(password, user!.password)
         .then((isMatch) => {
           if (!isMatch) {
-            return next({ status: STATUS_UNAUTHORIZED, message: 'Неправильная почта или пароль' });
+            return next(new UnauthorizedError('Неправильная почта или пароль'));
           }
 
           const payload = {
-            _id: user._id,
+            _id: user!._id,
           };
 
           const token = jwt.sign(payload, 'some-secret-key', { expiresIn: '7d' });
-          res.cookie('jwt', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-          // Удаляем лишний вызов и вместо него отправляем ответ с токеном
-          return res.status(STATUS_OK).json({ token, message: 'Авторизация произошла успешно' });
+          return res.status(STATUS_OK).json({ token, message: 'Авторизация прошла успешно' });
         })
-          .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' }));
     })
-      .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' }));
+    .catch(() => {
+        return next(new ServerError('Произошла ошибка'));
+    });
 };
 
 export const getCurrentUser = (req: IRequest, res: Response, next: NextFunction) => {
   const userId = req.user?._id;
   User.findById(userId)
     .then((user: IUser | null) => {
-      if (!user) {
-        return next({ status: STATUS_SERVER_ERROR, message: 'Пользователь не найден' });
-      }
-
       return res.status(STATUS_OK).json({ data: user });
     })
-    .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' }));
+    .catch(() => next(new ServerError('Произошла ошибка')));
 };
 export const getUsers = (req: Request, res: Response, next: NextFunction) => User.find({})
   .then((users) => res.status(STATUS_OK).json({ data: users }))
-    .catch(() => next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' }));
+  .catch(() => next(new ServerError('Произошла ошибка')));
 
 export const getUsersById = (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   return User.findById(id)
     .then((user) => {
-      if (!user) {
-        return next({ status: STATUS_NOT_FOUND, message: 'Пользователь с указанным _id не найден' });
-      }
       return res.status(STATUS_OK).json({ data: user });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next({ status: "STATUS_BAD_REQUEST", message: 'Некорректный формат _id' });
+        return next(new BadRequestError('Некорректный формат _id'));
       }
-        next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' })
+      return next(new ServerError('Произошла ошибка'))
     });
 };
 
@@ -121,27 +101,18 @@ export const updateUser = (req: IRequest, res: Response, next: NextFunction) => 
   } = req.body;
   const userId = req.user?._id;
 
-  if (!name || !about) {
-    return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при обновлении профиля' });
-  }
-
   return User.findByIdAndUpdate(userId, {
     name,
     about,
   }, { new: true, runValidators: true })
     .then((updatedUser) => {
-      if (!updatedUser) {
-        return next({ status: STATUS_NOT_FOUND, message: 'Пользователь с указанным _id не найден' });
-      }
       return res.status(STATUS_OK).json({ data: updatedUser });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при обновлении профиля' });
-      } if (err.name === 'CastError') {
-        return next({ status: STATUS_BAD_REQUEST, message: 'Некорректный формат _id' });
+        return next(new BadRequestError('Переданы некорректные данные при обновлении профиля'));
       }
-      return next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' });
+      return next(new ServerError('Произошла ошибка'))
     });
 };
 
@@ -149,23 +120,14 @@ export const updateUserAvatar = (req: IRequest, res: Response, next: NextFunctio
   const { avatar } = req.body;
   const userId = req.user?._id;
 
-  if (!avatar) {
-    return res.status(STATUS_BAD_REQUEST)
-      .json({ message: 'Переданы некорректные данные при обновлении аватара' });
-  }
   return User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((updatedUser) => {
-      if (!updatedUser) {
-        return next({ status: STATUS_NOT_FOUND, message: 'Пользователь с указанным _id не найден' });
-      }
       return res.status(STATUS_OK).json({ data: updatedUser });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next({ status: STATUS_BAD_REQUEST, message: 'Переданы некорректные данные при обновлении аватара' });
-      } if (err.name === 'CastError') {
-        return next({ status: STATUS_BAD_REQUEST, message: 'Некорректный формат _id' });
+        return next(new BadRequestError('Переданы некорректные данные при обновлении аватара'));
       }
-      return next({ status: STATUS_SERVER_ERROR, message: 'Произошла ошибка' });
+      return next(new ServerError('Произошла ошибка'))
     });
 };
