@@ -1,12 +1,13 @@
-import express, {Response, Request, NextFunction} from 'express';
+import express, { Response, Request, NextFunction } from 'express';
+import { errors } from 'celebrate';
 import userRouter from './routes/user';
 import cardsRouter from './routes/cards';
-import { createUser, getCurrentUser, login } from './controllers/users';
+import { createUser, login } from './controllers/users';
 import authMiddleware from './middlewares/auth';
-import {errorLogger, requestLogger} from "./middlewares/logger";
-import {createUserValidation, loginValidation} from "./validation/validation";
-import {NotFoundError} from "./utills";
-import {errors} from "celebrate";
+import { errorLogger, requestLogger } from './middlewares/logger';
+import { createUserValidation, loginValidation } from './validation/validation';
+import { AppError } from './utills';
+import errorHandler from './middlewares/errorHandler';
 
 const mongoose = require('mongoose');
 
@@ -34,12 +35,11 @@ app.use(authMiddleware);
 app.use('/users', userRouter);
 app.use('/cards', cardsRouter);
 
-app.use(errorLogger)
+app.use(errorLogger);
 app.use(errors());
+app.use(errorHandler);
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    return next(new NotFoundError('Страница не найдена'))
-});
+app.use((_req: Request, _res: Response, next: NextFunction) => next(AppError.NotFound('Страница не найдена')));
 
 app.listen(3000, () => {
   console.log('Сервер работает http://127.0.0.1:3000');

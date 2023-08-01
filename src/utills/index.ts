@@ -1,35 +1,28 @@
-class CustomError extends Error {
+export class AppError extends Error {
   status: number;
 
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
   }
-}
 
-export class BadRequestError extends CustomError {
-  constructor(message: string) {
-    super(message, 400);
+  static BadRequest(message: string): AppError {
+    return new AppError(message, 400);
   }
-}
 
-export class UnauthorizedError extends CustomError {
-  constructor(message: string) {
-    super(message, 401);
+  static Unauthorized(message: string): AppError {
+    return new AppError(message, 401);
   }
-}
-export class NotFoundError extends CustomError {
-  constructor(message: string) {
-    super(message, 404);
+
+  static NotFound(message: string): AppError {
+    return new AppError(message, 404);
   }
-}
-export class ForbiddenError extends CustomError {
-  constructor(message: string) {
-    super(message, 403);
+
+  static Forbidden(message: string): AppError {
+    return new AppError(message, 403);
   }
-}
-export class ServerError extends CustomError {
-  constructor(message: string) {
-    super(message, 500);
+
+  static ServerError(message: string): AppError {
+    return new AppError(message, 500);
   }
 }
