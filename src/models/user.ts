@@ -1,6 +1,6 @@
 import { model, Schema } from 'mongoose';
-import {regExp} from "../constants";
-import validator from "validator";
+import validator from 'validator';
+import { regExp } from '../constants';
 
 export interface IUser {
   name: string;
@@ -15,33 +15,30 @@ const userSchema: Schema = new Schema({
     type: String,
     minlength: 2,
     maxlength: 30,
-    required: true,
     default: 'Жак-Ив Кусто',
   },
   about: {
     type: String,
     minlength: 2,
     maxlength: 200,
-    required: true,
     default: 'Исследователь',
   },
   avatar: {
     type: String,
-    required: true,
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
-      validate: {
-          validator: (url: string) => regExp.test(url),
-          message: 'Некорректная ссылка на аватар',
-      },
+    validate: {
+      validator: (url: string) => regExp.test(url),
+      message: 'Некорректная ссылка на аватар',
+    },
   },
   email: {
     type: String,
     required: true,
     unique: true,
-      validate: {
+    validate: {
       validator: (value: string) => validator.isEmail(value),
-          message: "Некорректный формат почты"
-      }
+      message: 'Некорректный формат почты',
+    },
   },
   password: {
     type: String,
